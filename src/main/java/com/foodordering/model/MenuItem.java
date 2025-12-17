@@ -2,7 +2,7 @@ package com.foodordering.model;
 
 import java.util.Objects;
 
-public class MenuItem {
+public class MenuItem implements Orderable {
     private final String id;
     private String name;
     private double price;

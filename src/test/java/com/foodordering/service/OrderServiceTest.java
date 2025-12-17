@@ -1,37 +1,69 @@
 package com.foodordering.service;
 
-import com.foodordering.model.MenuItem;
-import com.foodordering.model.Order;
-import com.foodordering.model.OrderItem;
-import com.foodordering.model.User;
+import com.foodordering.model.*;
+import com.foodordering.repository.MenuItemRepository;
+import com.foodordering.repository.OrderItemRepository;
+import com.foodordering.repository.OrderRepository;
+import com.foodordering.repository.UserRepository;
+import com.foodordering.util.DbTestUtil;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import java.util.List;
+import java.util.UUID;
 import static org.junit.jupiter.api.Assertions.*;
 
 class OrderServiceTest {
 
-    @Test
-    void createOrderCalculatesTotal() {
-        OrderService service = new OrderService(0.1); // 10% tax
-        User user = new User("u1", "u@example.com", "hashed");
-        OrderItem item1 = new OrderItem(new MenuItem("1", "Pizza", 20.0), 2); // 40
-        OrderItem item2 = new OrderItem(new MenuItem("2", "Soda", 5.0), 1);   // 5
+    private UserRepository userRepository;
+    private MenuItemRepository menuItemRepository;
+    private OrderRepository orderRepository;
+    private OrderItemRepository orderItemRepository;
+    private OrderService service;
 
-        Order order = service.createOrder(user, List.of(item1, item2));
-
-        // subtotal 45, tax 10% -> 49.5
-        assertEquals(49.5, order.getTotal());
-        assertEquals(user, order.getUser());
+    @BeforeEach
+    void setup() throws Exception {
+        DbTestUtil.clearAll();
+        userRepository = new UserRepository();
+        menuItemRepository = new MenuItemRepository();
+        orderRepository = new OrderRepository();
+        orderItemRepository = new OrderItemRepository();
+        service = new OrderService(0.1, orderRepository, orderItemRepository);
     }
 
     @Test
-    void recalcWithDiscount() {
-        OrderService service = new OrderService(0.0);
-        User user = new User("u1", "u@example.com", "hashed");
-        OrderItem item = new OrderItem(new MenuItem("1", "Fries", 10.0), 3); // 30
-        Order order = service.createOrder(user, List.of(item));
+    void createOrderCalculatesTotalAndPersists() throws Exception {
+        User user = new User(UUID.randomUUID().toString(), "u@example.com", "hashed");
+        userRepository.save(user);
+
+        MenuItem pizza = new MenuItem("1", "Pizza", 20.0);
+        MenuItem soda = new MenuItem("2", "Soda", 5.0);
+        menuItemRepository.save(pizza);
+        menuItemRepository.save(soda);
+
+        OrderItem item1 = new OrderItem(pizza, 2); // 40
+        OrderItem item2 = new OrderItem(soda, 1);  // 5
+
+        Order order = service.createOrder(user, List.of(item1, item2), PaymentMethod.CASH);
+
+        assertEquals(49.5, order.getTotal()); // subtotal 45 +10%
+        assertEquals(user, order.getUser());
+        assertEquals(1, orderRepository.count());
+        assertEquals(2, orderItemRepository.count());
+    }
+
+    @Test
+    void recalcWithDiscountUpdatesDb() throws Exception {
+        User user = new User(UUID.randomUUID().toString(), "u@example.com", "hashed");
+        userRepository.save(user);
+
+        MenuItem fries = new MenuItem("1", "Fries", 10.0);
+        menuItemRepository.save(fries);
+
+        OrderItem item = new OrderItem(fries, 3); // 30
+        Order order = service.createOrder(user, List.of(item), PaymentMethod.CASH);
 
         service.recalculateTotal(order, 5.0);
-        assertEquals(25.0, order.getTotal());
+        // subtotal 30 +10% tax = 33, -5 discount = 28
+        assertEquals(28.0, order.getTotal());
     }
 }
