@@ -2,7 +2,6 @@ package com.foodordering.repository;
 
 import com.foodordering.db.DatabaseConnection;
 import com.foodordering.model.Order;
-import com.foodordering.model.OrderStatus;
 import com.foodordering.model.PaymentMethod;
 import java.sql.Connection;
 import java.sql.PreparedStatement;

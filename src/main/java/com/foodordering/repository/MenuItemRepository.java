@@ -102,4 +102,21 @@ public class MenuItemRepository {
         }
         return 0;
     }
+
+    public void deleteAll() throws SQLException {
+        try (Connection conn = DatabaseConnection.getConnection();
+             Statement stmt = conn.createStatement()) {
+            conn.setAutoCommit(false);
+            try {
+                stmt.executeUpdate("DELETE FROM order_items");
+                stmt.executeUpdate("DELETE FROM menu_items");
+                conn.commit();
+            } catch (SQLException e) {
+                conn.rollback();
+                throw e;
+            } finally {
+                conn.setAutoCommit(true);
+            }
+        }
+    }
 }
