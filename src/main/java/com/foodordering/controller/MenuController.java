@@ -178,12 +178,7 @@ public class MenuController {
         taxBox.getChildren().addAll(new Label("Tax (10%):"), taxLabel = new Label(formatMoney(0)));
 
         HBox discountBox = new HBox(10);
-        Label discountLbl = new Label("Discount:");
-        Spinner<Double> discountSpinner = new Spinner<>(0, 1000, 0, 5);
-        discountSpinner.setPrefWidth(100);
-        discountSpinner.valueProperty().addListener((obs, oldVal, newVal) -> updateSummary());
-        discountBox.getChildren().addAll(discountLbl, discountSpinner);
-        discountBox.getChildren().add(discountLabel = new Label(formatMoney(0)));
+        discountBox.getChildren().addAll(new Label("Discount:"), discountLabel = new Label(formatMoney(0)));
 
         HBox couponBox = new HBox(10);
         couponBox.setPadding(new Insets(10));
@@ -214,7 +209,7 @@ public class MenuController {
         Button checkoutBtn = new Button("✅ Place order");
         checkoutBtn.setStyle("-fx-padding: 10px; -fx-font-size: 12px; -fx-background-color: #5cb85c; -fx-text-fill: white;");
         checkoutBtn.setPrefWidth(300);
-        checkoutBtn.setOnAction(e -> checkout(stage, discountSpinner.getValue()));
+        checkoutBtn.setOnAction(e -> checkout(stage, 0));
 
         Separator separator = new Separator();
 
@@ -280,41 +275,24 @@ public class MenuController {
     private void updateSummary() {
         double subtotal = currentCart.subtotal();
         double tax = subtotal * 0.10;
-        double discount = 0;
-
-        ObservableList<javafx.scene.Node> children = ((VBox) ((BorderPane) cartTable.getScene().getRoot()).getRight()).getChildren();
-        for (javafx.scene.Node child : children) {
-            if (child instanceof HBox) {
-                HBox hbox = (HBox) child;
-                for (javafx.scene.Node node : hbox.getChildren()) {
-                    if (node instanceof Spinner) {
-                        Spinner<?> spinner = (Spinner<?>) node;
-                        if (spinner.getValue() instanceof Double) {
-                            discount = (Double) spinner.getValue();
-                        }
-                    }
-                }
-            }
-        }
-
         double couponDiscount = getCouponDiscount(subtotal);
-        double totalDiscount = discount + couponDiscount;
-        double total = subtotal + tax - totalDiscount;
+        double total = subtotal + tax - couponDiscount;
 
         subtotalLabel.setText(formatMoney(subtotal));
         taxLabel.setText(formatMoney(tax));
-        discountLabel.setText(formatMoney(totalDiscount));
+        discountLabel.setText(formatMoney(couponDiscount));
         totalLabel.setText(formatMoney(Math.max(total, 0)));
     }
 
-    private void checkout(Stage stage, double discount) {
+    private void checkout(Stage stage, double manualDiscount) {
         if (currentCart.getItems().isEmpty()) {
             showWarning("Cart is empty. Add items before paying");
             return;
         }
 
         try {
-            Order order = currentCart.toOrder(currentCustomer, 0.10, discount);
+            double couponDiscount = getCouponDiscount(currentCart.subtotal());
+            Order order = currentCart.toOrder(currentCustomer, 0.10, couponDiscount + manualDiscount);
             PaymentMethod method = paymentMethodCombo.getValue();
 
             if (processPayment(method, order.getTotal())) {

@@ -49,7 +49,7 @@ public class Main extends Application {
             );
 
             // Create menu controller and scene
-            MenuController menuController = new MenuController(menuService, orderService, customer);
+            MenuController menuController = new MenuController(menuService, orderService, couponService, customer);
             primaryStage.setScene(menuController.createScene(primaryStage));
 
             primaryStage.setTitle("Food Ordering System");
