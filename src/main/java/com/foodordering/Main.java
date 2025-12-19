@@ -5,9 +5,12 @@ import com.foodordering.model.Customer;
 import com.foodordering.repository.MenuItemRepository;
 import com.foodordering.repository.OrderItemRepository;
 import com.foodordering.repository.OrderRepository;
+import com.foodordering.repository.CouponRepository;
 import com.foodordering.service.MenuService;
 import com.foodordering.service.OrderService;
+import com.foodordering.service.CouponService;
 import com.foodordering.util.DataInitializer;
+import com.foodordering.util.CouponDataInitializer;
 import javafx.application.Application;
 import javafx.stage.Stage;
 
@@ -26,12 +29,15 @@ public class Main extends Application {
             MenuItemRepository menuItemRepository = new MenuItemRepository();
             OrderRepository orderRepository = new OrderRepository();
             OrderItemRepository orderItemRepository = new OrderItemRepository();
+            CouponRepository couponRepository = new CouponRepository();
 
             DataInitializer.initializeMenuItems(menuItemRepository);
+            CouponDataInitializer.initializeCoupons(couponRepository);
 
             // Initialize services
             MenuService menuService = new MenuService(menuItemRepository);
             OrderService orderService = new OrderService(0.10, orderRepository, orderItemRepository);
+            CouponService couponService = new CouponService(couponRepository);
 
             // Create test customer (in real app, this would come from login)
             Customer customer = new Customer(
