@@ -142,11 +142,46 @@ public class MenuController {
         TableColumn<OrderItem, Double> priceCol = new TableColumn<>("Line total");
         priceCol.setCellValueFactory(param -> new javafx.beans.property.SimpleDoubleProperty(param.getValue().lineTotal()).asObject());
 
+        TableColumn<OrderItem, Void> actionsCol = new TableColumn<>("Actions");
+        actionsCol.setCellFactory(param -> new TableCell<>() {
+            private final Button plusBtn = new Button("+");
+            private final Button minusBtn = new Button("-");
+            private final HBox container = new HBox(5);
+
+            {
+                plusBtn.setStyle("-fx-font-size: 10px; -fx-padding: 2px 8px;");
+                minusBtn.setStyle("-fx-font-size: 10px; -fx-padding: 2px 8px;");
+                
+                plusBtn.setOnAction(e -> {
+                    OrderItem item = getTableView().getItems().get(getIndex());
+                    increaseQuantity(item);
+                });
+                
+                minusBtn.setOnAction(e -> {
+                    OrderItem item = getTableView().getItems().get(getIndex());
+                    decreaseQuantity(item);
+                });
+                
+                container.getChildren().addAll(minusBtn, plusBtn);
+            }
+
+            @Override
+            protected void updateItem(Void item, boolean empty) {
+                super.updateItem(item, empty);
+                if (empty) {
+                    setGraphic(null);
+                } else {
+                    setGraphic(container);
+                }
+            }
+        });
+
         ObservableList<TableColumn<OrderItem, ?>> cartColumns = cartTable.getColumns();
         cartColumns.clear();
         cartColumns.add(itemCol);
         cartColumns.add(qtyCol);
         cartColumns.add(priceCol);
+        cartColumns.add(actionsCol);
 
         Button removeBtn = new Button("❌ Remove");
         removeBtn.setStyle("-fx-padding: 8px; -fx-font-size: 12px;");
@@ -336,6 +371,30 @@ public class MenuController {
         alert.setTitle("Success");
         alert.setHeaderText(message);
         alert.showAndWait();
+    }
+
+    private void increaseQuantity(OrderItem item) {
+        currentCart.addItem(item.getItem(), 1);
+        updateCartTable();
+        updateSummary();
+    }
+
+    private void decreaseQuantity(OrderItem item) {
+        if (item.getQuantity() <= 1) {
+            Alert alert = new Alert(Alert.AlertType.CONFIRMATION);
+            alert.setTitle("Confirm");
+            alert.setHeaderText("Remove this item from cart?");
+            Optional<ButtonType> result = alert.showAndWait();
+            
+            if (result.isPresent() && result.get() == ButtonType.OK) {
+                cartTable.getItems().remove(item);
+                updateSummary();
+            }
+        } else {
+            currentCart.addItem(item.getItem(), -1);
+            updateCartTable();
+            updateSummary();
+        }
     }
 
     private String formatMoney(double value) {
