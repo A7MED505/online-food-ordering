@@ -34,10 +34,14 @@ public class CouponDataInitializer {
                         coupon.setMaxDiscount(value);
                     }
                     couponRepository.save(coupon);
+                    System.out.println("Created coupon: " + code);
+                } else {
+                    System.out.println("Coupon already exists: " + code);
                 }
             }
 
-            System.out.println("Coupons initialized successfully!");
+            int count = couponRepository.count();
+            System.out.println("Coupons initialized successfully! Total: " + count);
         } catch (Exception e) {
             System.err.println("Error initializing coupons: " + e.getMessage());
             e.printStackTrace();

@@ -6,6 +6,8 @@ public class MenuItem implements Orderable {
     private final String id;
     private String name;
     private double price;
+    private String description;
+    private boolean available;
 
     public MenuItem(String id, String name, double price) {
         if (id == null || id.isBlank()) {
@@ -20,12 +22,16 @@ public class MenuItem implements Orderable {
         this.id = id;
         this.name = name;
         this.price = price;
+        this.description = "";
+        this.available = true;
     }
 
+    @Override
     public String getId() {
         return id;
     }
 
+    @Override
     public String getName() {
         return name;
     }
@@ -37,6 +43,7 @@ public class MenuItem implements Orderable {
         this.name = name;
     }
 
+    @Override
     public double getPrice() {
         return price;
     }
@@ -46,6 +53,24 @@ public class MenuItem implements Orderable {
             throw new IllegalArgumentException("price must be non-negative");
         }
         this.price = price;
+    }
+
+    @Override
+    public String getDescription() {
+        return description;
+    }
+
+    public void setDescription(String description) {
+        this.description = description != null ? description : "";
+    }
+
+    @Override
+    public boolean isAvailable() {
+        return available;
+    }
+
+    public void setAvailable(boolean available) {
+        this.available = available;
     }
 
     @Override

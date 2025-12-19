@@ -19,7 +19,10 @@ public class CouponService {
         if (code == null || code.isBlank()) {
             throw new IllegalArgumentException("code must not be empty");
         }
-        return couponRepository.findByCode(code.toUpperCase());
+        System.out.println("Searching for coupon: " + code.toUpperCase());
+        Optional<Coupon> result = couponRepository.findByCode(code.toUpperCase());
+        System.out.println("Coupon found: " + result.isPresent());
+        return result;
     }
 
     public List<Coupon> listValidCoupons() throws Exception {
