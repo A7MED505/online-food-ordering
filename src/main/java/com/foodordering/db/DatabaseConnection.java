@@ -31,6 +31,8 @@ public class DatabaseConnection {
             if (url == null || username == null || password == null) {
                 throw new RuntimeException("Missing db.url/db.username/db.password in db.properties");
             }
+
+            CouponTableInitializer.createCouponTable();
         } catch (Exception e) {
             throw new RuntimeException("Failed to initialize database configuration", e);
         }
