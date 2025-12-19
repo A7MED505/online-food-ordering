@@ -6,6 +6,7 @@ import com.foodordering.payment.CashPayment;
 import com.foodordering.payment.WalletPayment;
 import com.foodordering.service.MenuService;
 import com.foodordering.service.OrderService;
+import com.foodordering.service.CouponService;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
 import javafx.geometry.Insets;
@@ -25,8 +26,10 @@ import java.util.Optional;
 public class MenuController {
     private MenuService menuService;
     private OrderService orderService;
+    private CouponService couponService;
     private Cart currentCart;
     private Customer currentCustomer;
+    private String appliedCouponCode;
     private final NumberFormat currencyFormat = NumberFormat.getCurrencyInstance(Locale.US);
 
     private TableView<com.foodordering.model.MenuItem> menuTable;
@@ -35,14 +38,21 @@ public class MenuController {
     private Label taxLabel;
     private Label discountLabel;
     private Label totalLabel;
+    private Label couponStatusLabel;
     private ComboBox<PaymentMethod> paymentMethodCombo;
     private Spinner<Integer> quantitySpinner;
 
     public MenuController(MenuService menuService, OrderService orderService, Customer customer) {
+        this(menuService, orderService, null, customer);
+    }
+
+    public MenuController(MenuService menuService, OrderService orderService, CouponService couponService, Customer customer) {
         this.menuService = menuService;
         this.orderService = orderService;
+        this.couponService = couponService;
         this.currentCustomer = customer;
         this.currentCart = new Cart();
+        this.appliedCouponCode = null;
     }
 
     public Scene createScene(Stage stage) {
@@ -175,6 +185,20 @@ public class MenuController {
         discountBox.getChildren().addAll(discountLbl, discountSpinner);
         discountBox.getChildren().add(discountLabel = new Label(formatMoney(0)));
 
+        HBox couponBox = new HBox(10);
+        couponBox.setPadding(new Insets(10));
+        couponBox.setStyle("-fx-border-color: #f0ad4e; -fx-border-width: 1; -fx-border-radius: 3;");
+        Label couponLabel = new Label("Coupon code:");
+        TextField couponField = new TextField();
+        couponField.setPrefWidth(120);
+        couponField.setPromptText("e.g., SAVE10");
+        Button applyCouponBtn = new Button("Apply");
+        applyCouponBtn.setStyle("-fx-padding: 5px 15px;");
+        couponStatusLabel = new Label("");
+        couponStatusLabel.setStyle("-fx-text-fill: #666;");
+        applyCouponBtn.setOnAction(e -> applyCoupon(couponField.getText()));
+        couponBox.getChildren().addAll(couponLabel, couponField, applyCouponBtn, couponStatusLabel);
+
         HBox totalBox = new HBox(10);
         totalLabel = new Label(formatMoney(0));
         totalLabel.setStyle("-fx-font-size: 14px; -fx-font-weight: bold; -fx-text-fill: #d9534f;");
@@ -200,6 +224,7 @@ public class MenuController {
                 subtotalBox,
                 taxBox,
                 discountBox,
+                couponBox,
                 separator,
                 totalBox,
                 new Separator(),
@@ -272,11 +297,13 @@ public class MenuController {
             }
         }
 
-        double total = subtotal + tax - discount;
+        double couponDiscount = getCouponDiscount(subtotal);
+        double totalDiscount = discount + couponDiscount;
+        double total = subtotal + tax - totalDiscount;
 
         subtotalLabel.setText(formatMoney(subtotal));
         taxLabel.setText(formatMoney(tax));
-        discountLabel.setText(formatMoney(discount));
+        discountLabel.setText(formatMoney(totalDiscount));
         totalLabel.setText(formatMoney(Math.max(total, 0)));
     }
 
@@ -335,5 +362,47 @@ public class MenuController {
 
     private String formatMoney(double value) {
         return currencyFormat.format(value);
+    }
+
+    private void applyCoupon(String code) {
+        if (code == null || code.isBlank()) {
+            showWarning("Enter a coupon code");
+            return;
+        }
+
+        if (couponService == null) {
+            showError("Coupon service not available");
+            return;
+        }
+
+        try {
+            String validation = couponService.validateCoupon(code.toUpperCase());
+            if ("valid".equals(validation)) {
+                appliedCouponCode = code.toUpperCase();
+                couponStatusLabel.setText("✓ Coupon applied");
+                couponStatusLabel.setStyle("-fx-text-fill: #5cb85c;");
+                updateSummary();
+            } else {
+                couponStatusLabel.setText("✗ " + validation);
+                couponStatusLabel.setStyle("-fx-text-fill: #d9534f;");
+                appliedCouponCode = null;
+            }
+        } catch (Exception e) {
+            showError("Error validating coupon: " + e.getMessage());
+            appliedCouponCode = null;
+        }
+    }
+
+    private double getCouponDiscount(double subtotal) {
+        if (appliedCouponCode == null || couponService == null) {
+            return 0;
+        }
+
+        try {
+            return couponService.applyDiscount(appliedCouponCode, subtotal);
+        } catch (Exception e) {
+            System.err.println("Error applying coupon: " + e.getMessage());
+            return 0;
+        }
     }
 }
